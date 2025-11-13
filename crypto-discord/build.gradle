@@ -1,0 +1,40 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.2.0'
+    id 'io.spring.dependency-management' version '1.1.4'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+java { sourceCompatibility = '17' }
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    // Spring Boot Web
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // Gate.io SDK (GitHub → JitPack)
+    implementation 'com.github.gateio:gateapi-java:7.1.8'
+
+    // Bithumb/봇 서명 유틸리티
+    implementation 'commons-codec:commons-codec'
+
+    // Rate Limiting
+    implementation 'com.giffing.bucket4j.spring.boot.starter:bucket4j-spring-boot-starter:0.10.0'
+
+    // ✅ JWT 생성용 (com.auth0:java-jwt)
+    implementation 'com.auth0:java-jwt:4.5.0'
+
+    // ✅ HTTP 요청용 (Apache HttpClient)
+    implementation 'org.apache.httpcomponents:httpclient:4.5.14'
+
+    // Test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
