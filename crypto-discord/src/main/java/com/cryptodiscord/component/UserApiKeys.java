@@ -17,11 +17,11 @@ public class UserApiKeys {
     private String botSecretKey;
 
     // --- (prod) 파일 경로
-    @Value("${api.keys.bithumb.key_file:#{null}}") private String BITHUMB_KEY_PATH;
-    @Value("${api.keys.bithumb.secret_file:#{null}}") private String BITHUMB_SECRET_PATH;
-    @Value("${api.keys.gateio.key_file:#{null}}") private String GATEIO_KEY_PATH;
-    @Value("${api.keys.gateio.secret_file:#{null}}") private String GATEIO_SECRET_PATH;
-    @Value("${api.bot-access-key_file:#{null}}") private String BOT_SECRET_KEY_PATH;
+    @Value("${api.keys.bithumb.key:#{null}}") private String BITHUMB_KEY_PROD;
+    @Value("${api.keys.bithumb.secret:#{null}}") private String BITHUMB_SECRET_PROD;
+    @Value("${api.keys.gateio.key:#{null}}") private String GATEIO_KEY_PROD;
+    @Value("${api.keys.gateio.secret:#{null}}") private String GATEIO_SECRET_PROD;
+    @Value("${api.bot-access-key:#{null}}") private String BOT_SECRET_KEY_PROD;
 
     // --- (dev) 키 값
     @Value("${api.keys.bithumb.key:#{null}}") private String BITHUMB_KEY;
@@ -31,20 +31,20 @@ public class UserApiKeys {
     @Value("${api.bot-access-key:#{null}}") private String BOT_SECRET_KEY_VAL;
 
     // 디스코드 id
-    @Value("${api.keys.discord.user-key:#{null}") private String DISCORD_USER_KEY;
+    @Value("${api.keys.discord.user-key:#{null}}") private String DISCORD_USER_KEY;
 
     @PostConstruct
     public void init() throws IOException {
         String bithumbKey, bithumbSecret, gateioKey, gateioSecret;
 
-        if (BOT_SECRET_KEY_PATH != null) {
+        if (BOT_SECRET_KEY_PROD != null) {
             // === PROD (파일) 모드 ===
             System.out.println("운영 모드(prod): Docker Secrets에서 키를 로드합니다.");
-            bithumbKey = readSecret(BITHUMB_KEY_PATH);
-            bithumbSecret = readSecret(BITHUMB_SECRET_PATH);
-            gateioKey = readSecret(GATEIO_KEY_PATH);
-            gateioSecret = readSecret(GATEIO_SECRET_PATH);
-            this.botSecretKey = readSecret(BOT_SECRET_KEY_PATH);
+            bithumbKey = BITHUMB_KEY_PROD;
+            bithumbSecret = BITHUMB_SECRET_PROD;
+            gateioKey = GATEIO_KEY_PROD;
+            gateioSecret = GATEIO_SECRET_PROD;
+            this.botSecretKey = BOT_SECRET_KEY_PROD;
         } else {
             // === DEV (환경변수 값) 모드 ===
             System.out.println("개발 모드(dev): 환경 변수(.env.local)에서 키를 로드합니다.");
@@ -60,15 +60,6 @@ public class UserApiKeys {
         testUserKeys.put("gateio", new ApiKeys(gateioKey, gateioSecret));   // [수정]
 
         userKeysDb.put(DISCORD_USER_KEY, testUserKeys);
-    }
-
-    private String readSecret(String path) throws IOException {
-        try {
-            return new String(Files.readAllBytes(Paths.get(path))).trim();
-        } catch (IOException e) {
-            System.err.println("!!! 시크릿 파일 읽기 실패: " + path);
-            throw e;
-        }
     }
 
     public ApiKeys getKeys(String discordId, String exchange) {

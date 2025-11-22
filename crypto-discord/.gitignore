@@ -5,6 +5,7 @@ build/
 !**/src/main/**/build/
 **/src/main/**/*.yml
 !**/src/test/**/build/
+META-INF/*
 
 ### STS ###
 .apt_generated

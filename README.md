@@ -134,6 +134,186 @@ NzI3MjU4...이하생략...R9DQ
 라는 메시지가 뜨면 성공입니다 🎉
 <br><br><br>
 
+# Docker 기반 Spring Boot + Python Discord Bot 배포 가이드
+
+## 📦 프로젝트 구조
+
+```
+project-root/
+│
+├── spring-app/
+│   ├── Dockerfile
+│   ├── build/libs/app.jar
+│   └── application.yml
+│
+├── python-bot/
+│   ├── Dockerfile
+│   ├── bot.py
+│   ├── requirements.txt
+│   └── .env
+│
+└── docker-compose.yml
+```
+
+---
+
+## 1. Spring Boot JAR 빌드하기
+
+### IntelliJ 메뉴
+```
+Build → Build Artifacts → .jar → Build
+```
+
+### Gradle CLI
+```
+./gradlew clean build
+```
+
+빌드 결과는 `build/libs/` 안에 생성됨.
+
+---
+
+## 2. Spring Boot Dockerfile
+
+`spring-app/Dockerfile`
+```dockerfile
+FROM eclipse-temurin:17-jdk
+WORKDIR /app
+COPY build/libs/app.jar app.jar
+EXPOSE 8090
+ENTRYPOINT ["java", "-jar", "app.jar"]
+```
+
+---
+
+## 3. application.yml (prod)
+
+```yaml
+server:
+  port: 8090
+
+spring:
+  profiles:
+    active: prod
+
+api:
+  keys:
+    discord:
+      user-key: "DISCORD_USER_KEY"
+    bithumb:
+      key: "BITHUMB_API_KEY"
+      secret: "BITHUMB_API_SECRET"
+    gateio:
+      key: "GATEIO_API_KEY"
+      secret: "GATEIO_API_SECRET"
+
+  bot-access-key: "BOT_INTERNAL_SECRET"
+```
+
+---
+
+## 4. Python Bot 환경 변수 (.env)
+
+`python-bot/.env`
+```env
+DISCORD_BOT_TOKEN=xxxx
+BOT_ACCESS_KEY=xxxx
+SPRING_BOOT_API_URL=xxxx
+```
+
+---
+
+## 5. Python Bot Dockerfile
+
+`python-bot/Dockerfile`
+```dockerfile
+FROM python:3.10-slim
+WORKDIR /app
+COPY requirements.txt ./
+RUN pip install -r requirements.txt
+COPY . .
+CMD ["python", "bot.py"]
+```
+
+---
+
+## 6. docker-compose.yml
+
+```yaml
+version: "3.8"
+
+services:
+  spring:
+    build: ./spring-app
+    container_name: spring-app
+    ports:
+      - "8090:8090"
+    environment:
+      SPRING_PROFILES_ACTIVE: "prod"
+    networks:
+      - internal
+
+  bot:
+    build: ./python-bot
+    container_name: discord-bot
+    env_file:
+      - ./python-bot/.env
+    depends_on:
+      - spring
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+```
+
+---
+
+## 7. 실행하기
+
+### 1) JAR 파일 복사
+```
+cp build/libs/*.jar spring-app/build/libs/app.jar
+```
+
+### 2) Docker 빌드 & 실행
+```
+docker compose up --build -d
+```
+
+### 3) 컨테이너 상태 확인
+```
+docker ps
+```
+
+---
+
+## 8. Docker 내부 통신 테스트
+
+```bash
+docker exec -it discord-bot ping spring
+docker exec -it discord-bot curl SPRING_URL
+```
+
+---
+
+## 9. 트러블슈팅
+
+### ❌ `Could not resolve host: spring`
+- 네트워크 설정 불량 → docker compose down → up
+
+### ❌ `500 Server Error`
+- API Key 또는 Bithumb IP 미등록 문제
+
+### ❌ 봇이 두 번 응답함
+- 로컬 bot.py 실행된 상태 → 종료 필요
+
+---
+
+## 🎉 완성
+Docker 기반 Spring Boot + Discord Bot 완전 배포 구조 완성!
+
 # 결과 이미지
 
 ## 빗썸
