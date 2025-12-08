@@ -9,7 +9,7 @@ import hashlib
 from dotenv import load_dotenv
 
 # ============================================================
-# 1) 로컬 / 운영 자동 감지
+# 1) 로컬 / 운영 모드 감지
 # ============================================================
 
 ENV_LOCAL_PATH = os.path.join(os.path.dirname(__file__), ".env.local")
@@ -17,12 +17,12 @@ IS_LOCAL = os.path.exists(ENV_LOCAL_PATH)
 
 if IS_LOCAL:
     load_dotenv(ENV_LOCAL_PATH)
-    print("🚀 [LOCAL MODE] .env.local 파일 로드됨!")
+    print("✅ [LOCAL MODE] .env.local 로드됨")
 else:
-    print("🌐 [PROD MODE] Docker Secret 기반 동작")
+    print("🚀 [PROD MODE] Docker Secret 기반 동작")
 
 # ============================================================
-# 2) 시크릿 로더 (운영 모드에서 secret 파일 읽기)
+# 2) 시크릿 로더 (운영 모드에서는 secret 파일 읽기)
 # ============================================================
 
 def load_secret(env_var_name_for_path, env_var_name_for_value):
@@ -50,7 +50,7 @@ BOT_SECRET_KEY = load_secret("BOT_ACCESS_KEY_FILE_PATH", "BOT_ACCESS_KEY")
 SPRING_BOOT_API_URL = os.getenv("SPRING_BOOT_API_URL")
 
 if TOKEN is None or BOT_SECRET_KEY is None or SPRING_BOOT_API_URL is None:
-    print("❌ ERROR: 필수 환경변수 누락!")
+    print("❌ ERROR: 필수 환경변수가 누락!")
     exit()
 
 # ============================================================
@@ -62,7 +62,7 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 processing_users = set()
 
-# 🔥 기본 help 완전 비활성화
+# 기본 help 커맨드 비활성화
 bot.help_command = None
 bot.remove_command("help")
 
@@ -84,7 +84,7 @@ def get_auth_headers():
     }
 
 # ============================================================
-# 6) 입력 파서 (exchange / action / market / state)
+# 6) 쿼리 파서 (exchange / action / market / state)
 # ============================================================
 
 def parse_query(query_string):
@@ -93,7 +93,7 @@ def parse_query(query_string):
     exchange = action = market = state = None
 
     # 거래소
-    if "게이트아이오" in query or "gateio" in query or "1" in query:
+    if "gateio" in query or "게이트" in query or "게이오" in query or "게이트아이오" in query or "1" in query:
         exchange = "gateio"
     elif "빗썸" in query or "bithumb" in query or "3" in query:
         exchange = "bithumb"
@@ -101,9 +101,9 @@ def parse_query(query_string):
         exchange = "all"
 
     # 기능
-    if "자산" in query:
+    if "자산" in query or "asset" in query or "assets" in query:
         action = "assets"
-    elif "거래내역" in query or "거래" in query:
+    elif "거래내역" in query or "거래" in query or "trades" in query:
         action = "trades"
     elif "수익" in query or "pnl" in query:
         action = "pnl"
@@ -115,7 +115,7 @@ def parse_query(query_string):
 
     # 상태
     for token in query:
-        if token in ["wait", "done", "cancel"]:
+        if token in ["wait", "done", "cancel", "watch"]:
             state = token
 
     return exchange, action, market, state
@@ -126,7 +126,7 @@ def parse_query(query_string):
 
 @bot.event
 async def on_ready():
-    print(f"🤖 {bot.user.name} 준비 완료!")
+    print(f"✅ {bot.user.name} 준비 완료!")
     print(f"API 서버: {SPRING_BOOT_API_URL}")
     print(f"MODE: {'LOCAL' if IS_LOCAL else 'PROD'}")
     print("------")
@@ -139,7 +139,7 @@ async def on_ready():
 async def unified_query(ctx, *, query_string: str = None):
     user_id = ctx.author.id
 
-    # 도움말 모드
+    # 안내모드
     if query_string is None:
         await ctx.send(
             "**Crypto Bot 명령어 도움말**\n"
@@ -165,11 +165,11 @@ async def unified_query(ctx, *, query_string: str = None):
     exchange, action, market, state = parse_query(query_string)
 
     if not exchange or not action:
-        await ctx.send("명령어가 올바르지 않습니다. `!조회` 를 입력하세요.")
+        await ctx.send("명령어가 올바르지 않습니다. `!조회` 입력해주세요.")
         processing_users.discard(user_id)
         return
 
-    loading = await ctx.send(f"요청 처리 중... (`{exchange}` | `{action}`)")
+    loading = await ctx.send(f"요청 처리 중.. (`{exchange}` | `{action}`)")
 
     try:
         if action == "assets":
@@ -179,19 +179,20 @@ async def unified_query(ctx, *, query_string: str = None):
             await handle_trades(ctx, loading, user_id, exchange, market, state)
 
     except Exception as e:
-        await loading.edit(content=f"❌ 오류: {e}")
+        await loading.edit(content=f"오류 발생: {e}")
 
     finally:
         processing_users.discard(user_id)
 
 # ============================================================
-# 9) 핸들러 구현
+# 9) 자산 조회
 # ============================================================
 
 async def handle_assets(ctx, msg, user_id, exchange):
+    use_my_assets_endpoint = exchange in ["all", "bithumb"]
     params = {"discord_id": str(user_id)}
-    endpoint = "/my-assets" if exchange == "all" else "/assets/exchange"
-    if exchange != "all":
+    endpoint = "/my-assets" if use_my_assets_endpoint else "/assets/exchange"
+    if not use_my_assets_endpoint:
         params["exchange"] = exchange
 
     response = requests.get(
@@ -221,7 +222,7 @@ async def handle_assets(ctx, msg, user_id, exchange):
         value_krw = balance * current_price
         total_krw += value_krw
 
-        # KRW, 포인트(P)는 따로 계산
+        # KRW, 포인트(P) 등은 따로 계산
         if currency == "KRW":
             money += balance
             continue
@@ -229,12 +230,12 @@ async def handle_assets(ctx, msg, user_id, exchange):
             point += balance
             continue
 
-        # 수익률
+        # 수익률 계산
         profit_percent = (
             ((current_price - avg_buy_price) / avg_buy_price * 100)
             if avg_buy_price > 0 else 0
         )
-        arrow = "📈" if profit_percent >= 0 else "📉"
+        arrow = "▲" if profit_percent >= 0 else "▼"
 
         embed.add_field(
             name=f"{currency} ({balance:.4f})",
@@ -248,13 +249,20 @@ async def handle_assets(ctx, msg, user_id, exchange):
         )
 
     # KRW / POINT / 총합 표시
-    embed.add_field(name="💰 현금", value=f"{int(money):,} KRW", inline=False)
-    embed.add_field(name="💰 포인트", value=f"{int(point):,} KRW", inline=False)
+    embed.add_field(name="총 현금", value=f"{int(money):,} KRW", inline=False)
+    embed.add_field(name="총 포인트", value=f"{int(point):,} KRW", inline=False)
     embed.add_field(
-        name="💰 총 평가금액",
+        name="총 추정자산액",
         value=f"{int(total_krw + money + point):,} KRW / ${total_krw / 1350:,.2f} USDT",
         inline=False
     )
+
+    feedback = data.get("feedback")
+    if feedback:
+        truncated = feedback if len(feedback) <= 1024 else feedback[:1021] + "..."
+        embed.add_field(name="AI Feedback", value=truncated, inline=False)
+    elif use_my_assets_endpoint:
+        embed.add_field(name="AI Feedback", value="AI 피드백을 가져오지 못했습니다.", inline=False)
 
     await msg.edit(content="조회 완료!", embed=embed)
 
@@ -278,37 +286,37 @@ async def handle_trades(ctx, msg, user_id, exchange, market, state):
     response.raise_for_status()
     trades = response.json()
 
-    # 🔥 상태 설명 변환
+    # 상태 맵핑
     STATE_MAP = {
-        "wait": "체결 대기 (wait)",
-        "watch": "예약주문 대기 (watch)",
-        "done": "전체 체결 완료 (done)",
-        "cancel": "주문 취소 (cancel)"
+        "wait": "체결 대기(wait)",
+        "watch": "예약주문 대기(watch)",
+        "done": "완료(done)",
+        "cancel": "취소(cancel)"
     }
 
-    state_text = STATE_MAP.get(state, "전체 상태")  # 값 없으면 전체 상태
+    state_text = STATE_MAP.get(state, "전체 상태")
 
     embed = discord.Embed(
-        title=f"[{exchange.upper()}] {ctx.author.name}님의 거래 내역",
+        title=f"[{exchange.upper()}] {ctx.author.name}님의 거래 이력",
         description=f"**주문 상태:** {state_text}",
         color=discord.Color.blue()
     )
 
     if not trades:
-        embed.add_field(name="알림", value="거래 내역이 없습니다.", inline=False)
+        embed.add_field(name="알림", value="거래 이력이 없습니다.", inline=False)
     else:
         desc = ""
         for t in trades[:10]:
             side_text = "매수" if t["side"] == "bid" else "매도"
 
-            # 예약 주문 등 가격이 없는 경우 처리
+            # 예약 주문 등 가격/수량 없을 때 처리
             price = t.get("price")
             amount = t.get("amount")
             ord_type = t.get("ord_type")
             paid_fee = t.get("paid_fee")
 
-            price_text = f"{price} KRW" if price and price != "정보 없음" else "정보 없음"
-            amount_text = f"{amount} 개" if amount and amount != "정보 없음" else "정보 없음"
+            price_text = f"{price} KRW" if price else "정보 없음"
+            amount_text = f"{amount}" if amount else "정보 없음"
             order_text = "지정가" if ord_type == "limit" else "시장가"
             fee_text = f"{paid_fee} KRW" if paid_fee else "정보 없음"
 
@@ -317,9 +325,9 @@ async def handle_trades(ctx, msg, user_id, exchange, market, state):
                 f"- [종목] {t['symbol']}\n"
                 f"= [주문 종류] {side_text}\n"
                 f"+ [주문 유형] {order_text}\n"
-                f"! 가격: {price_text}\n"
+                f"! 가격 {price_text}\n"
                 f"# 수량: {amount_text}\n"
-                f"; 수수료: {fee_text}\n"
+                f"; 수수료 {fee_text}\n"
                 "```\n"
             )
 
@@ -345,15 +353,15 @@ async def help_command(ctx):
         "`거래내역`: 거래 기록 조회\n\n"
         "**[옵션]**\n"
         "`KRW-BTC`, `xrp-krw` 등 마켓\n"
-        "- `wait` : 체결 대기 (default), `watch` : 예약주문 대기, `done` : 전체 체결 완료, `cancel` : 주문 취소 상태\n\n"
+        "- `wait` : 체결 대기(default), `watch` : 예약주문 대기, `done` : 완료, `cancel` : 주문 취소 상태\n\n"
         "**예시**\n"
         "`!조회 빗썸 자산`\n"
         "`!조회 3 거래내역 KRW-BTC done`\n"
     )
 
 # ============================================================
-# 11) 실행
+# 11) 수행
 # ============================================================
 
-print("🚀 봇 시작 중...")
+print("✅ 봇 시작 준비 완료..")
 bot.run(TOKEN)

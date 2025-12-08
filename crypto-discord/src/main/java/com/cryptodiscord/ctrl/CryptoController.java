@@ -2,6 +2,7 @@ package com.cryptodiscord.ctrl;
 
 import com.cryptodiscord.dto.UnifiedTrade;
 import com.cryptodiscord.service.CryptoService;
+import com.cryptodiscord.service.GptService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -11,7 +12,11 @@ import java.util.Map;
 @RequestMapping("/api")
 public class CryptoController {
     private final CryptoService cryptoService;
-    public CryptoController(CryptoService cryptoService) { this.cryptoService = cryptoService; }
+    private final GptService gptService;
+    public CryptoController(CryptoService cryptoService, GptService gptService) {
+        this.cryptoService = cryptoService;
+        this.gptService = gptService;
+    }
     @GetMapping("/my-assets")
     public Map<String, Object> getMyAssets(@RequestParam String discord_id) throws Exception {
         Map<String, Object> result = new HashMap<>();
@@ -19,6 +24,7 @@ public class CryptoController {
         // 빗썸 자산 메시지
         List<Map<String, Object>> bithumbCoins = cryptoService.getBithumbAssets(discord_id);
         result.put("coins", bithumbCoins);
+        result.put("feedback", gptService.buildAssetFeedback(bithumbCoins));
 
         return result;
     }
