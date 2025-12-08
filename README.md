@@ -6,6 +6,7 @@
 * 디스코드 챗봇 api 연동 완료 (25-11-11)
 * 빗썸 api 연동 완료(25-11-13)
 * linux docker 반영완료(25-11-22)
+* gpt api 연동 완료(25-12-01)
 
 ## 추가 일정
 * [gateio api](https://github.com/gateio/gateapi-java) 연동
