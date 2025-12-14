@@ -7,12 +7,6 @@
 * 빗썸 api 연동 완료(25-11-13)
 * linux docker 반영완료(25-11-22)
 * gpt api 연동 완료(25-12-01)
-
-## 추가 일정
-* [gateio api](https://github.com/gateio/gateapi-java) 연동
-* [bitget api](https://github.com/BitgetLimited/v3-bitget-api-sdk) 연동 - mvn에 없어서 gradle에서 자동으로 못가져와서 sdk를 직접 프로젝트에 넣는 방식으로 진행해야 될 것 같음
-* [원달러환율 api](https://www.data.go.kr/data/3068846/openapi.do) 연동 - 매일 원달러 환율 계산해서 원화, USD 가격으로 보여주기 or 빗썸에서 테더(USDT)로 연동하여 보여주기 둘중에 하나의 방식으로 채택 예정
-* 운영에서 실제로 할때 리눅스 도커에 반영 예정 (미니 PC)
 <br><br><br>
 
 # 라이브러리
