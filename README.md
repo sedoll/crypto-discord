@@ -6,7 +6,7 @@
 * 디스코드 챗봇 api 연동 완료 (25-11-11)
 * 빗썸 api 연동 완료(25-11-13)
 * linux docker 반영완료(25-11-22)
-* gpt api 연동 완료(25-12-01)
+* gpt-5 api 연동 완료(25-12-01) / gpt4 이하와 gpt5 이상은 api 호출 구조가 다름
 <br><br><br>
 
 # 라이브러리
@@ -204,6 +204,10 @@ api:
       secret: "GATEIO_API_SECRET"
 
   bot-access-key: "BOT_INTERNAL_SECRET"
+
+openai:
+  api-key: "OPENAI_API_SECRECT_KEY"
+  model: "GPT_MODEL"
 ```
 
 ---
@@ -301,9 +305,6 @@ docker exec -it discord-bot curl SPRING_URL
 
 ### ❌ `500 Server Error`
 - API Key 또는 Bithumb IP 미등록 문제
-
-### ❌ 봇이 두 번 응답함
-- 로컬 bot.py 실행된 상태 → 종료 필요
 
 ---
 
